@@ -1,7 +1,7 @@
 # ETL_Scriptella
 
-This is a ETL script to import data from a tab separated file containing unnormalized data. 
-The objective is to create a report listing all departments containing 100+ employees.
+This is a ETL script to import data from a tab separated file containing unnormalized data, validate fields, normalize data and execute few queries on the normalized data. 
+The end goal is to create a report listing all departments containing 100+ employees.
 This has been developed using Scriptella v1.1 (http://scriptella.org/) which is an open source ETL (Extract-Transform-Load) 
 and script execution tool.
 
@@ -17,6 +17,9 @@ DepartmentId	DepartmentName	EmployeeId	EmployeeFullName
 
 Required output:
 "department_name","number_of_employees"
+
+Additionally, a log is created which lists total records processed, records imported, and a list of all
+records that failed during import.
 
 Steps to run the program
 ==========================
