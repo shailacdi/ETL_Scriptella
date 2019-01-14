@@ -1,0 +1,129 @@
+<!DOCTYPE etl SYSTEM "http://scriptella.javaforge.com/dtd/etl.dtd">
+<etl>
+    <description>
+        Imports data from from tab separated file and stores the results in MySQL.
+    </description>
+
+    <!--Configurations-->
+    <properties>
+        <include href="etl.properties"/> 
+    </properties>
+	
+    <!--Initialize Connections-->
+    <connection id="janino" driver="janino" />    <!--For custom java classes -->
+    <connection id="in" driver="$input_driver" url="$input_url" /> <!--For tsv file-->
+    <connection id="db" driver="$output_driver" url="$output_url" user="$user" password="$password" /> <!-- For database-->
+    <connection id="log" driver="$log_driver" url="$log_url" /> <!--For logging-->
+    <connection id="csv_out" driver="$csv_driver" url="$report_url" />  <!--For report-->
+
+    <!-- Initiate data import process by creating required tables in database using the sql script -->
+    <script connection-id="db">
+        <dialect name="mysql">
+            <include href="createTables.sql">
+                <fallback>
+                    Failed to execute SQL scripts. Please try again
+                </fallback>
+            </include>
+        </dialect>
+    </script>
+
+    <!-- Use java custom class for validations -->
+    <query connection-id="in">
+        <query connection-id="janino" if="rownum gt 1">
+            import java.io.*;
+            import com.etlhelper.*;
+
+            String line, num_fields_to_extract;
+            int n;
+            
+            //line from tsv
+            Object tsvRecord = get("column0");
+            if (tsvRecord == null)
+                line = "";
+            else
+                line = tsvRecord.toString().trim();
+
+            //number of fields to extract - configured in the properties file
+            Object numFields = get("num_fields_to_extract");
+            if (numFields == null)
+                num_fields_to_extract = "";
+            else
+                num_fields_to_extract = numFields.toString().trim();
+            n=Integer.parseInt(num_fields_to_extract);
+
+            //custom java class
+            ETLValidator etlvalidator = new ETLValidator();             
+            
+            //validate the fields and set the etl global variables 
+            Boolean flag = etlvalidator.getFields(line, num_fields_to_extract);         
+            set("flag", flag);
+            set("tsv_row", "Import failed : "+ line);
+
+            //keeps track of rows processed for logging
+            int count = Integer.parseInt(String.valueOf(get("rownum")).trim());
+            count = count-1;
+            java.lang.System.setProperty("import_count", Integer.toString(count));            
+            next();
+
+            <!--insert the extracted fields into a temporary table-->
+            <script connection-id="db" if="flag">
+                INSERT INTO employee_unnormalized (employee_id, employee_last_name, employee_first_name, department_id, department_name) VALUES (?employeeID, ?employeeLastName, ?employeeFirstName, ?departmentID, ?departmentName);
+                <onerror> <!--exception handling-->
+                    INSERT INTO data_import_logs (message) VALUES (?tsv_row);
+                </onerror>
+            </script>
+        </query>
+    </query>
+
+    <!--Normalize the data  -->
+    <script connection-id="db" >
+        INSERT INTO department(department_id, department_name) SELECT DISTINCT department_id, department_name from employee_unnormalized;
+        INSERT INTO employee(employee_id, employee_last_name, employee_first_name, department_id) SELECT distinct employee_id, employee_last_name, employee_first_name, department_id FROM employee_unnormalized;
+        COMMIT;
+        <onerror>
+        </onerror>
+    </script>  
+    
+    <!--Logging totals-->
+    <query connection-id="db">
+        SELECT COUNT(*) AS "count" FROM employee_unnormalized;
+        <script connection-id="log">
+            Total records processed from tab separated data file : $import_count
+            Total records imported into employee_unnormalized table : $count
+            ******* Import failed for the following records below: ********
+        </script>
+    </query>
+ 
+    <!--Logging records that failed during import -->
+    <query connection-id="db">
+        SELECT * FROM data_import_logs;
+        <script connection-id="log">
+            $id, $message 
+        </script>
+    </query>
+
+    <!--Clean up by removing unnecessary tables -->
+    <script connection-id="db">
+        DROP TABLE employee_unnormalized;
+        DROP TABLE data_import_logs;
+    </script>
+
+    <!--Report header-->
+    <script connection-id="csv_out">
+        department_name, number_of_employees
+    </script>
+
+    <!--Report to display department name and total employees of departments with 100 or more employees-->
+    <query connection-id="db">
+        SELECT d.department_name AS "department_name", qr.number_of_employees AS "number_of_employees" FROM department d JOIN
+        (
+            SELECT * FROM 
+            (
+                SELECT department_id, count(*) AS number_of_employees FROM employee GROUP BY department_id
+            )q WHERE q.number_of_employees>=100
+        )qr ON d.department_id=qr.department_id;
+        <script connection-id="csv_out">
+            $department_name, $number_of_employees
+        </script>
+    </query>
+</etl>

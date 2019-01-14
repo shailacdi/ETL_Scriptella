@@ -1,0 +1,4 @@
+Total records processed from tab separated data file : 303
+Total records imported into employee_unnormalized table : 302
+******* Import failed for the following records below: ********
+1, Import failed : 1	IT	1	"Smith, Jane"
