@@ -7,9 +7,9 @@ and script execution tool.
 
 
 Note :
-	1. MySQL has been used to import the raw data and create the required normalized tables.
+1. MySQL has been used to import the raw data and create the required normalized tables.
 	   Database scripts needs to be altered for other databases
-	2. If testing on Linux, change settings in etl.properties accordingly
+2. If testing on Linux, change settings in etl.properties accordingly
 
 
 Input format:
