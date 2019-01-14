@@ -27,12 +27,12 @@ Unzip the contents into folder say, <INSTALL_FOLDER>
 3. Copy etlhelper.jar into <SCRIPTELLA_HOME>\lib
 4. Modify the following configurations in etl.properties file to point to their corresponding folders and files
 
-a.input_url
-b.log_url
-c.report_url
-5. Go to INSTALL_FOLDER. Run the following command from the command prompt 
+<p>a.input_url
+<p>b.log_url
+<p>c.report_url
 
-scriptella data_import
- -- or--
-scriptella data_import -debug
+<p>5. Go to INSTALL_FOLDER. Run the following command from the command prompt 
+<br>scriptella data_import
+ <br>-- or--
+<br>scriptella data_import -debug
 	
