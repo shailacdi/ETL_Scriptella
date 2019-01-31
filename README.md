@@ -1,4 +1,4 @@
-# ETL_Scriptella
+# ETL_Tool
 
 This is a ETL script to import data from a tab separated file containing unnormalized data, validate fields, normalize data and execute few queries on the normalized data. 
 The end goal is to create a report listing all departments containing 100+ employees.
